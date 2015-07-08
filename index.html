@@ -11,11 +11,8 @@
 <script src="http://epsg.io/3006.js"></script>
 <style>
  #map {
-   position: absolute;
-   top: 0;
-   bottom: 0;
-   left: 0;
-   right: 0;
+   width: 600px;
+   height: 600px;
  }
 </style>
 </head>
@@ -85,9 +82,9 @@ var map = new ol.Map({
   target: document.getElementById('map'),
   view: new ol.View({
     projection: 'EPSG:3006',
-    center: [434854, 6481717],
-    resolutions: [8192, 2048, 512],
-    resolution: 8192
+    center: [434854, 7181717],
+    resolutions: [2048],
+    resolution: 2048
   })
 });
 
