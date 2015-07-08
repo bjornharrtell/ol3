@@ -11,21 +11,16 @@
 <script src="http://epsg.io/3006.js"></script>
 <style>
  #map {
-   max-width: 600px;
-   margin: 0 auto;
+   position: absolute;
+   top: 0;
+   bottom: 0;
+   left: 0;
+   right: 0;
  }
 </style>
 </head>
 <body>
-<div class="container-fluid">
-
- <div class="row-fluid">
-   <div class="span12">
-     <div id="map" class="map" style="background: white;"></div>
-   </div>
- </div>
-
-</div>
+  <div id="map" class="map" style="background: white;"></div>
 <script>
 var extent = [196608,5996544,2293760,8093696];
 
