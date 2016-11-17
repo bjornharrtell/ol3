@@ -48,14 +48,6 @@
         <div class="span12">
           <h4 id="title">topolis integration</h4>
           <div id="map" class="map"></div>
-<form class="form-inline">
-  <label>Element type &nbsp;</label>
-  <select id="type">
-    <option value="Point">Node</option>
-    <option value="LineString">Edge</option>
-    <option value="None">None</option>
-  </select>
-</form>
 
         </div>
       </div>
@@ -65,7 +57,7 @@
           <p id="shortdesc">Example on how to use topolis with OpenLayers 3.</p>
           <div id="docs"><p>Example showing the integration of <a href="https://github.com/bjornharrtell/topolis">topolis</a> with OpenLayers 3, enabling editing of topological data.</p>
 </div>
-          <div id="api-links">Related API documentation: <ul class="inline"><li><a href="../apidoc/ol.Map.html" title="API documentation for ol.Map">ol.Map</a></li>,<li><a href="../apidoc/ol.View.html" title="API documentation for ol.View">ol.View</a></li>,<li><a href="../apidoc/ol.interaction.Draw.html" title="API documentation for ol.interaction.Draw">ol.interaction.Draw</a></li>,<li><a href="../apidoc/ol.interaction.Snap.html" title="API documentation for ol.interaction.Snap">ol.interaction.Snap</a></li>,<li><a href="../apidoc/ol.layer.Tile.html" title="API documentation for ol.layer.Tile">ol.layer.Tile</a></li>,<li><a href="../apidoc/ol.layer.Vector.html" title="API documentation for ol.layer.Vector">ol.layer.Vector</a></li>,<li><a href="../apidoc/ol.source.OSM.html" title="API documentation for ol.source.OSM">ol.source.OSM</a></li>,<li><a href="../apidoc/ol.source.Vector.html" title="API documentation for ol.source.Vector">ol.source.Vector</a></li>,<li><a href="../apidoc/ol.style.Style.html" title="API documentation for ol.style.Style">ol.style.Style</a></li>,<li><a href="../apidoc/ol.style.Stroke.html" title="API documentation for ol.style.Stroke">ol.style.Stroke</a></li>,<li><a href="../apidoc/ol.style.Fill.html" title="API documentation for ol.style.Fill">ol.style.Fill</a></li>,<li><a href="../apidoc/ol.style.Circle.html" title="API documentation for ol.style.Circle">ol.style.Circle</a></li>,<li><a href="../apidoc/ol.style.Text.html" title="API documentation for ol.style.Text">ol.style.Text</a></li></ul></div>
+          <div id="api-links">Related API documentation: <ul class="inline"><li><a href="../apidoc/ol.Feature.html" title="API documentation for ol.Feature">ol.Feature</a></li>,<li><a href="../apidoc/ol.Map.html" title="API documentation for ol.Map">ol.Map</a></li>,<li><a href="../apidoc/ol.View.html" title="API documentation for ol.View">ol.View</a></li>,<li><a href="../apidoc/ol.geom.Point.html" title="API documentation for ol.geom.Point">ol.geom.Point</a></li>,<li><a href="../apidoc/ol.geom.LineString.html" title="API documentation for ol.geom.LineString">ol.geom.LineString</a></li>,<li><a href="../apidoc/ol.geom.Polygon.html" title="API documentation for ol.geom.Polygon">ol.geom.Polygon</a></li>,<li><a href="../apidoc/ol.interaction.Draw.html" title="API documentation for ol.interaction.Draw">ol.interaction.Draw</a></li>,<li><a href="../apidoc/ol.interaction.Snap.html" title="API documentation for ol.interaction.Snap">ol.interaction.Snap</a></li>,<li><a href="../apidoc/ol.layer.Tile.html" title="API documentation for ol.layer.Tile">ol.layer.Tile</a></li>,<li><a href="../apidoc/ol.layer.Vector.html" title="API documentation for ol.layer.Vector">ol.layer.Vector</a></li>,<li><a href="../apidoc/ol.source.OSM.html" title="API documentation for ol.source.OSM">ol.source.OSM</a></li>,<li><a href="../apidoc/ol.source.Vector.html" title="API documentation for ol.source.Vector">ol.source.Vector</a></li>,<li><a href="../apidoc/ol.style.Style.html" title="API documentation for ol.style.Style">ol.style.Style</a></li>,<li><a href="../apidoc/ol.style.Stroke.html" title="API documentation for ol.style.Stroke">ol.style.Stroke</a></li>,<li><a href="../apidoc/ol.style.Fill.html" title="API documentation for ol.style.Fill">ol.style.Fill</a></li>,<li><a href="../apidoc/ol.style.Circle.html" title="API documentation for ol.style.Circle">ol.style.Circle</a></li>,<li><a href="../apidoc/ol.style.Text.html" title="API documentation for ol.style.Text">ol.style.Text</a></li>,<li><a href="../apidoc/ol.control.MousePosition.html" title="API documentation for ol.control.MousePosition">ol.control.MousePosition</a></li></ul></div>
         </div>
       </div>
 
@@ -75,7 +67,7 @@
           <a id="jsfiddle-button"><i class="fa fa-jsfiddle"></i> Edit</a>
         </div>
         <form method="POST" id="jsfiddle-form" target="_blank" action="https://jsfiddle.net/api/post/library/pure/">
-          <textarea class="hidden" name="js">/* global topolis */
+          <textarea class="hidden" name="js">/* global topolis, toastr */
 
 var raster &#x3D; new ol.layer.Tile({
   source: new ol.source.OSM()
@@ -157,101 +149,106 @@ var map &#x3D; new ol.Map({
   target: &#x27;map&#x27;,
   view: new ol.View({
     center: [-11000000, 4600000],
-    zoom: 4
+    zoom: 16
   })
 });
 
-var typeSelect &#x3D; document.getElementById(&#x27;type&#x27;);
-
 var topo &#x3D; topolis.topo.create();
 
+function nodeToFeature(node) {
+  var feature &#x3D; new ol.Feature({
+    geometry: new ol.geom.Point(node.coordinate),
+    node: node
+  });
+  feature.setId(node.id);
+  nodes.addFeature(feature);
+}
+
+function edgeToFeature(edge) {
+  var feature &#x3D; new ol.Feature({
+    geometry: new ol.geom.LineString(edge.coordinates),
+    edge: edge
+  });
+  feature.setId(edge.id);
+  edges.addFeature(feature);
+}
+
+function faceToFeature(face) {
+  var coordinates &#x3D; topolis.face.getFaceGeometry(topo, face);
+  var feature &#x3D; new ol.Feature({
+    geometry: new ol.geom.Polygon(coordinates),
+    face: face
+  });
+  feature.setId(face.id);
+  faces.addFeature(feature);
+}
+
+function createNode(topo, coord) {
+  var node, feature;
+  var existingEdge &#x3D; topolis.edge.getEdgeByPoint(topo, coord, 5);
+  if (existingEdge) {
+    node &#x3D; topolis.edge.modEdgeSplit(topo, existingEdge, coord);
+    coord[0] &#x3D; node.coordinate[0];
+    coord[1] &#x3D; node.coordinate[1];
+    feature &#x3D; edges.getFeatureById(existingEdge.id);
+    feature.setGeometry(new ol.geom.LineString(existingEdge.coordinates));
+    edgeToFeature(existingEdge.nextLeft);
+  } else {
+    node &#x3D; topolis.node.addIsoNode(topo, coord);
+  }
+  nodeToFeature(node);
+  return node;
+}
+
+
 function onDrawend(e) {
-  var feature &#x3D; e.feature;
-  var c &#x3D; feature.getGeometry().getCoordinates();
+  var feature;
+  var edgeGeom &#x3D; e.feature.getGeometry().getCoordinates();
+  var startCoord &#x3D; edgeGeom[0];
+  var endCoord &#x3D; edgeGeom[edgeGeom.length - 1];
+  var start, end;
+  var result, edge, removedFace;
   try {
-    if (typeSelect.value &#x3D;&#x3D;&#x3D; &#x27;Point&#x27;) {
-      var node &#x3D; topolis.node.addIsoNode(topo, c);
-      feature.set(&#x27;node&#x27;, node);
-      nodes.addFeature(feature);
-    } else {
-      var start &#x3D; topolis.node.getNodeByPoint(topo, c[0]);
-      if (start &#x3D;&#x3D;&#x3D; 0) throw Error(&#x27;Cannot find start node&#x27;);
-      var end &#x3D; topolis.node.getNodeByPoint(topo, c[c.length-1]);
-      if (end &#x3D;&#x3D;&#x3D; 0) throw Error(&#x27;Cannot find end node&#x27;);
-      var result &#x3D; topolis.edge.addEdgeNewFaces(topo, start, end, c);
-      var edge &#x3D; result.edge;
-      var removedFace &#x3D; result.removedFace;
-      feature.set(&#x27;edge&#x27;, edge);
-      edges.addFeature(feature);
-      var face &#x3D; edge.leftFace;
-      if (face.id !&#x3D;&#x3D; 0) {
-        var coordinates &#x3D; topolis.face.getFaceGeometry(topo, face);
-        var polygon &#x3D; new ol.geom.Polygon(coordinates);
-        var feature &#x3D; new ol.Feature({
-          geometry: polygon,
-          face: face
-        });
-        feature.setId(face.id);
-        faces.addFeature(feature);
-      }
-      face &#x3D; edge.rightFace;
-      if (face.id !&#x3D;&#x3D; 0) {
-        var coordinates &#x3D; topolis.face.getFaceGeometry(topo, face);
-        var polygon &#x3D; new ol.geom.Polygon(coordinates);
-        var feature &#x3D; new ol.Feature({
-          geometry: polygon,
-          face: face
-        });
-        feature.setId(face.id);
-        faces.addFeature(feature);
-      }
-      if (removedFace) {
-        var feature &#x3D; faces.getFeatureById(removedFace.id);
-        faces.removeFeature(feature);
-      }
+    start &#x3D; topolis.node.getNodeByPoint(topo, startCoord);
+    if (start &#x3D;&#x3D;&#x3D; 0) {
+      start &#x3D; createNode(topo, startCoord);
+    }
+    end &#x3D; topolis.node.getNodeByPoint(topo, endCoord);
+    if (end &#x3D;&#x3D;&#x3D; 0) {
+      end &#x3D; createNode(topo, endCoord);
+    }
+    result &#x3D; topolis.edge.addEdgeNewFaces(topo, start, end, edgeGeom);
+    edge &#x3D; result.edge;
+    removedFace &#x3D; result.removedFace;
+    edgeToFeature(edge);
+    if (edge.leftFace.id !&#x3D;&#x3D; 0) {
+      faceToFeature(edge.leftFace);
+    }
+    if (edge.rightFace.id !&#x3D;&#x3D; 0) {
+      faceToFeature(edge.rightFace);
+    }
+    if (removedFace) {
+      feature &#x3D; faces.getFeatureById(removedFace.id);
+      faces.removeFeature(feature);
     }
   } catch (e) {
     toastr.warning(e.toString());
   }
 }
 
-var draw; // global so we can remove it later
-function addInteraction() {
-  var value &#x3D; typeSelect.value;
-  if (value !&#x3D;&#x3D; &#x27;None&#x27;) {
-    draw &#x3D; new ol.interaction.Draw({
-      type: /** @type {ol.geom.GeometryType} */ (typeSelect.value)
-    });
-    draw.on(&#x27;drawend&#x27;, onDrawend);
-    map.addInteraction(draw);
-    var snap &#x3D; new ol.interaction.Snap({
-      source: nodes
-    });
-    map.addInteraction(snap);
-  }
-}
-
-
-/**
- * Handle change event.
- */
-typeSelect.onchange &#x3D; function() {
-  map.removeInteraction(draw);
-  addInteraction();
-};
-
-addInteraction();
+var draw &#x3D; new ol.interaction.Draw({
+  type: &#x27;LineString&#x27;
+});
+draw.on(&#x27;drawend&#x27;, onDrawend);
+map.addInteraction(draw);
+var snap &#x3D; new ol.interaction.Snap({
+  source: edges
+});
+map.addInteraction(snap);
+map.addControl(new ol.control.MousePosition());
 </textarea>
           <textarea class="hidden" name="css"></textarea>
           <textarea class="hidden" name="html">&lt;div id&#x3D;&quot;map&quot; class&#x3D;&quot;map&quot;&gt;&lt;/div&gt;
-&lt;form class&#x3D;&quot;form-inline&quot;&gt;
-  &lt;label&gt;Element type &amp;nbsp;&lt;/label&gt;
-  &lt;select id&#x3D;&quot;type&quot;&gt;
-    &lt;option value&#x3D;&quot;Point&quot;&gt;Node&lt;/option&gt;
-    &lt;option value&#x3D;&quot;LineString&quot;&gt;Edge&lt;/option&gt;
-    &lt;option value&#x3D;&quot;None&quot;&gt;None&lt;/option&gt;
-  &lt;/select&gt;
-&lt;/form&gt;
 </textarea>
           <input type="hidden" name="wrap" value="l">
           <input type="hidden" name="resources" value="https://openlayers.org/en/v3.19.1/css/ol.css,https://openlayers.org/en/v3.19.1/build/ol.js,https://bjornharrtell.github.io/topolis/alpha/topolis.min.js,https://code.jquery.com/jquery-3.1.1.min.js,https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.3/toastr.min.js,https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.3/toastr.min.css">
@@ -271,16 +268,8 @@ addInteraction();
   &lt;/head&gt;
   &lt;body&gt;
     &lt;div id&#x3D;&quot;map&quot; class&#x3D;&quot;map&quot;&gt;&lt;/div&gt;
-    &lt;form class&#x3D;&quot;form-inline&quot;&gt;
-      &lt;label&gt;Element type &amp;nbsp;&lt;/label&gt;
-      &lt;select id&#x3D;&quot;type&quot;&gt;
-        &lt;option value&#x3D;&quot;Point&quot;&gt;Node&lt;/option&gt;
-        &lt;option value&#x3D;&quot;LineString&quot;&gt;Edge&lt;/option&gt;
-        &lt;option value&#x3D;&quot;None&quot;&gt;None&lt;/option&gt;
-      &lt;/select&gt;
-    &lt;/form&gt;
     &lt;script&gt;
-      /* global topolis */
+      /* global topolis, toastr */
 
       var raster &#x3D; new ol.layer.Tile({
         source: new ol.source.OSM()
@@ -362,90 +351,103 @@ addInteraction();
         target: &#x27;map&#x27;,
         view: new ol.View({
           center: [-11000000, 4600000],
-          zoom: 4
+          zoom: 16
         })
       });
 
-      var typeSelect &#x3D; document.getElementById(&#x27;type&#x27;);
-
       var topo &#x3D; topolis.topo.create();
 
+      function nodeToFeature(node) {
+        var feature &#x3D; new ol.Feature({
+          geometry: new ol.geom.Point(node.coordinate),
+          node: node
+        });
+        feature.setId(node.id);
+        nodes.addFeature(feature);
+      }
+
+      function edgeToFeature(edge) {
+        var feature &#x3D; new ol.Feature({
+          geometry: new ol.geom.LineString(edge.coordinates),
+          edge: edge
+        });
+        feature.setId(edge.id);
+        edges.addFeature(feature);
+      }
+
+      function faceToFeature(face) {
+        var coordinates &#x3D; topolis.face.getFaceGeometry(topo, face);
+        var feature &#x3D; new ol.Feature({
+          geometry: new ol.geom.Polygon(coordinates),
+          face: face
+        });
+        feature.setId(face.id);
+        faces.addFeature(feature);
+      }
+
+      function createNode(topo, coord) {
+        var node, feature;
+        var existingEdge &#x3D; topolis.edge.getEdgeByPoint(topo, coord, 5);
+        if (existingEdge) {
+          node &#x3D; topolis.edge.modEdgeSplit(topo, existingEdge, coord);
+          coord[0] &#x3D; node.coordinate[0];
+          coord[1] &#x3D; node.coordinate[1];
+          feature &#x3D; edges.getFeatureById(existingEdge.id);
+          feature.setGeometry(new ol.geom.LineString(existingEdge.coordinates));
+          edgeToFeature(existingEdge.nextLeft);
+        } else {
+          node &#x3D; topolis.node.addIsoNode(topo, coord);
+        }
+        nodeToFeature(node);
+        return node;
+      }
+
+
       function onDrawend(e) {
-        var feature &#x3D; e.feature;
-        var c &#x3D; feature.getGeometry().getCoordinates();
+        var feature;
+        var edgeGeom &#x3D; e.feature.getGeometry().getCoordinates();
+        var startCoord &#x3D; edgeGeom[0];
+        var endCoord &#x3D; edgeGeom[edgeGeom.length - 1];
+        var start, end;
+        var result, edge, removedFace;
         try {
-          if (typeSelect.value &#x3D;&#x3D;&#x3D; &#x27;Point&#x27;) {
-            var node &#x3D; topolis.node.addIsoNode(topo, c);
-            feature.set(&#x27;node&#x27;, node);
-            nodes.addFeature(feature);
-          } else {
-            var start &#x3D; topolis.node.getNodeByPoint(topo, c[0]);
-            if (start &#x3D;&#x3D;&#x3D; 0) throw Error(&#x27;Cannot find start node&#x27;);
-            var end &#x3D; topolis.node.getNodeByPoint(topo, c[c.length-1]);
-            if (end &#x3D;&#x3D;&#x3D; 0) throw Error(&#x27;Cannot find end node&#x27;);
-            var result &#x3D; topolis.edge.addEdgeNewFaces(topo, start, end, c);
-            var edge &#x3D; result.edge;
-            var removedFace &#x3D; result.removedFace;
-            feature.set(&#x27;edge&#x27;, edge);
-            edges.addFeature(feature);
-            var face &#x3D; edge.leftFace;
-            if (face.id !&#x3D;&#x3D; 0) {
-              var coordinates &#x3D; topolis.face.getFaceGeometry(topo, face);
-              var polygon &#x3D; new ol.geom.Polygon(coordinates);
-              var feature &#x3D; new ol.Feature({
-                geometry: polygon,
-                face: face
-              });
-              feature.setId(face.id);
-              faces.addFeature(feature);
-            }
-            face &#x3D; edge.rightFace;
-            if (face.id !&#x3D;&#x3D; 0) {
-              var coordinates &#x3D; topolis.face.getFaceGeometry(topo, face);
-              var polygon &#x3D; new ol.geom.Polygon(coordinates);
-              var feature &#x3D; new ol.Feature({
-                geometry: polygon,
-                face: face
-              });
-              feature.setId(face.id);
-              faces.addFeature(feature);
-            }
-            if (removedFace) {
-              var feature &#x3D; faces.getFeatureById(removedFace.id);
-              faces.removeFeature(feature);
-            }
+          start &#x3D; topolis.node.getNodeByPoint(topo, startCoord);
+          if (start &#x3D;&#x3D;&#x3D; 0) {
+            start &#x3D; createNode(topo, startCoord);
+          }
+          end &#x3D; topolis.node.getNodeByPoint(topo, endCoord);
+          if (end &#x3D;&#x3D;&#x3D; 0) {
+            end &#x3D; createNode(topo, endCoord);
+          }
+          result &#x3D; topolis.edge.addEdgeNewFaces(topo, start, end, edgeGeom);
+          edge &#x3D; result.edge;
+          removedFace &#x3D; result.removedFace;
+          edgeToFeature(edge);
+          if (edge.leftFace.id !&#x3D;&#x3D; 0) {
+            faceToFeature(edge.leftFace);
+          }
+          if (edge.rightFace.id !&#x3D;&#x3D; 0) {
+            faceToFeature(edge.rightFace);
+          }
+          if (removedFace) {
+            feature &#x3D; faces.getFeatureById(removedFace.id);
+            faces.removeFeature(feature);
           }
         } catch (e) {
           toastr.warning(e.toString());
         }
       }
 
-      var draw; // global so we can remove it later
-      function addInteraction() {
-        var value &#x3D; typeSelect.value;
-        if (value !&#x3D;&#x3D; &#x27;None&#x27;) {
-          draw &#x3D; new ol.interaction.Draw({
-            type: /** @type {ol.geom.GeometryType} */ (typeSelect.value)
-          });
-          draw.on(&#x27;drawend&#x27;, onDrawend);
-          map.addInteraction(draw);
-          var snap &#x3D; new ol.interaction.Snap({
-            source: nodes
-          });
-          map.addInteraction(snap);
-        }
-      }
-
-
-      /**
-       * Handle change event.
-       */
-      typeSelect.onchange &#x3D; function() {
-        map.removeInteraction(draw);
-        addInteraction();
-      };
-
-      addInteraction();
+      var draw &#x3D; new ol.interaction.Draw({
+        type: &#x27;LineString&#x27;
+      });
+      draw.on(&#x27;drawend&#x27;, onDrawend);
+      map.addInteraction(draw);
+      var snap &#x3D; new ol.interaction.Snap({
+        source: edges
+      });
+      map.addInteraction(snap);
+      map.addControl(new ol.control.MousePosition());
     &lt;/script&gt;
   &lt;/body&gt;
 &lt;/html&gt;</code></pre>

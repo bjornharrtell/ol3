@@ -78,87 +78,100 @@ var map = new ol.Map({
   target: 'map',
   view: new ol.View({
     center: [-11000000, 4600000],
-    zoom: 4
+    zoom: 16
   })
 });
 
-var typeSelect = document.getElementById('type');
-
 var topo = topolis.topo.create();
 
+function nodeToFeature(node) {
+  var feature = new ol.Feature({
+    geometry: new ol.geom.Point(node.coordinate),
+    node: node
+  });
+  feature.setId(node.id);
+  nodes.addFeature(feature);
+}
+
+function edgeToFeature(edge) {
+  var feature = new ol.Feature({
+    geometry: new ol.geom.LineString(edge.coordinates),
+    edge: edge
+  });
+  feature.setId(edge.id);
+  edges.addFeature(feature);
+}
+
+function faceToFeature(face) {
+  var coordinates = topolis.face.getFaceGeometry(topo, face);
+  var feature = new ol.Feature({
+    geometry: new ol.geom.Polygon(coordinates),
+    face: face
+  });
+  feature.setId(face.id);
+  faces.addFeature(feature);
+}
+
+function createNode(topo, coord) {
+  var node, feature;
+  var existingEdge = topolis.edge.getEdgeByPoint(topo, coord, 5);
+  if (existingEdge) {
+    node = topolis.edge.modEdgeSplit(topo, existingEdge, coord);
+    coord[0] = node.coordinate[0];
+    coord[1] = node.coordinate[1];
+    feature = edges.getFeatureById(existingEdge.id);
+    feature.setGeometry(new ol.geom.LineString(existingEdge.coordinates));
+    edgeToFeature(existingEdge.nextLeft);
+  } else {
+    node = topolis.node.addIsoNode(topo, coord);
+  }
+  nodeToFeature(node);
+  return node;
+}
+
+
 function onDrawend(e) {
-  var feature = e.feature;
-  var c = feature.getGeometry().getCoordinates();
+  var feature;
+  var edgeGeom = e.feature.getGeometry().getCoordinates();
+  var startCoord = edgeGeom[0];
+  var endCoord = edgeGeom[edgeGeom.length - 1];
+  var start, end;
+  var result, edge, removedFace;
   try {
-    if (typeSelect.value === 'Point') {
-      var node = topolis.node.addIsoNode(topo, c);
-      feature.set('node', node);
-      nodes.addFeature(feature);
-    } else {
-      var start = topolis.node.getNodeByPoint(topo, c[0]);
-      if (start === 0) throw Error('Cannot find start node');
-      var end = topolis.node.getNodeByPoint(topo, c[c.length-1]);
-      if (end === 0) throw Error('Cannot find end node');
-      var result = topolis.edge.addEdgeNewFaces(topo, start, end, c);
-      var edge = result.edge;
-      var removedFace = result.removedFace;
-      feature.set('edge', edge);
-      edges.addFeature(feature);
-      var face = edge.leftFace;
-      if (face.id !== 0) {
-        var coordinates = topolis.face.getFaceGeometry(topo, face);
-        var polygon = new ol.geom.Polygon(coordinates);
-        var feature = new ol.Feature({
-          geometry: polygon,
-          face: face
-        });
-        feature.setId(face.id);
-        faces.addFeature(feature);
-      }
-      face = edge.rightFace;
-      if (face.id !== 0) {
-        var coordinates = topolis.face.getFaceGeometry(topo, face);
-        var polygon = new ol.geom.Polygon(coordinates);
-        var feature = new ol.Feature({
-          geometry: polygon,
-          face: face
-        });
-        feature.setId(face.id);
-        faces.addFeature(feature);
-      }
-      if (removedFace) {
-        var feature = faces.getFeatureById(removedFace.id);
-        faces.removeFeature(feature);
-      }
+    start = topolis.node.getNodeByPoint(topo, startCoord);
+    if (start === 0) {
+      start = createNode(topo, startCoord);
+    }
+    end = topolis.node.getNodeByPoint(topo, endCoord);
+    if (end === 0) {
+      end = createNode(topo, endCoord);
+    }
+    result = topolis.edge.addEdgeNewFaces(topo, start, end, edgeGeom);
+    edge = result.edge;
+    removedFace = result.removedFace;
+    edgeToFeature(edge);
+    if (edge.leftFace.id !== 0) {
+      faceToFeature(edge.leftFace);
+    }
+    if (edge.rightFace.id !== 0) {
+      faceToFeature(edge.rightFace);
+    }
+    if (removedFace) {
+      feature = faces.getFeatureById(removedFace.id);
+      faces.removeFeature(feature);
     }
   } catch (e) {
     toastr.warning(e.toString());
   }
 }
 
-var draw; // global so we can remove it later
-function addInteraction() {
-  var value = typeSelect.value;
-  if (value !== 'None') {
-    draw = new ol.interaction.Draw({
-      type: /** @type {ol.geom.GeometryType} */ (typeSelect.value)
-    });
-    draw.on('drawend', onDrawend);
-    map.addInteraction(draw);
-    var snap = new ol.interaction.Snap({
-      source: nodes
-    });
-    map.addInteraction(snap);
-  }
-}
-
-
-/**
- * Handle change event.
- */
-typeSelect.onchange = function() {
-  map.removeInteraction(draw);
-  addInteraction();
-};
-
-addInteraction();
+var draw = new ol.interaction.Draw({
+  type: 'LineString'
+});
+draw.on('drawend', onDrawend);
+map.addInteraction(draw);
+var snap = new ol.interaction.Snap({
+  source: edges
+});
+map.addInteraction(snap);
+map.addControl(new ol.control.MousePosition());
