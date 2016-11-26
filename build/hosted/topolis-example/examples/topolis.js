@@ -85,6 +85,9 @@ var map = new ol.Map({
 var topo = topolis.createTopology();
 
 topo.on('addnode', nodeToFeature);
+topo.on('removenode', function(e) {
+  removeElementFeature(nodes, e);
+});
 topo.on('addedge', edgeToFeature);
 topo.on('modedge', function(e) {
   var feature = edges.getFeatureById(e.id);
@@ -142,7 +145,6 @@ function createNode(topo, coord) {
   return node;
 }
 
-
 function onDrawend(e) {
   var edgeGeom = e.feature.getGeometry().getCoordinates();
   var startCoord = edgeGeom[0];
@@ -154,15 +156,23 @@ function onDrawend(e) {
     var edgesAtStart = topo.getEdgeByPoint(startCoord, 5);
     var edgesAtEnd = topo.getEdgeByPoint(endCoord, 5);
     var crossing = topo.getEdgesByLine(edgeGeom);
-    if (crossing.length === 1 && start === 0 && end === 0 && edgesAtStart.length === 0 && edgesAtEnd.length === 0) {
+    if (crossing.length === 1 && !start && !end && edgesAtStart.length === 0 && edgesAtEnd.length === 0) {
       topo.remEdgeNewFace(crossing[0]);
+      start = crossing[0].start;
+      if (start.face) {
+        topo.removeIsoNode(start);
+      }
+      end = crossing[0].end;
+      if (end.face) {
+        topo.removeIsoNode(end);
+      }
       return;
     }
-    if (start === 0) {
+    if (!start) {
       start = createNode(topo, startCoord);
       edgeGeom[0] = start.coordinate;
     }
-    if (end === 0) {
+    if (!end) {
       end = createNode(topo, endCoord);
       edgeGeom[edgeGeom.length - 1] = end.coordinate;
     }
