@@ -1,10 +1,9 @@
 import Map from '../src/ol/Map.js';
 import View from '../src/ol/View.js';
-import GeoJSON from '../src/ol/format/GeoJSON.js';
+import FlatGeobuf from '../src/ol/format/FlatGeobuf.js';
 import VectorLayer from '../src/ol/layer/Vector.js';
 import VectorSource from '../src/ol/source/Vector.js';
 import {Fill, Stroke, Style, Text} from '../src/ol/style.js';
-
 
 const style = new Style({
   fill: new Fill({
@@ -28,16 +27,7 @@ const style = new Style({
 
 const vectorSource = new VectorSource({
   url: 'data/flatgeobuf/countries.fgb',
-  format: new GeoJSON(),
-  loader: function() {
-    fetch('data/flatgeobuf/countries.fgb').then(function(response) {
-      response.arrayBuffer().then(function(arrayBuffer) {
-        const geojson = flatgeobuf.deserialize(new Uint8Array(arrayBuffer));
-        vectorSource.addFeatures(
-          vectorSource.getFormat().readFeatures(geojson));
-      })
-    });
-  }
+  format: new FlatGeobuf()
 });
 
 const vectorLayer = new VectorLayer({
