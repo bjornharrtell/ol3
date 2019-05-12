@@ -5,6 +5,8 @@ import VectorLayer from '../src/ol/layer/Vector.js';
 import VectorSource from '../src/ol/source/Vector.js';
 import {Fill, Stroke, Style, Text} from '../src/ol/style.js';
 
+import {bbox as bboxStrategy} from '../src/ol/loadingstrategy.js';
+
 const style = new Style({
   fill: new Fill({
     color: 'rgba(255, 255, 255, 0.6)'
@@ -26,7 +28,14 @@ const style = new Style({
 });
 
 const vectorSource = new VectorSource({
-  url: 'data/flatgeobuf/countries.fgb',
+  //url: 'data/flatgeobuf/countries.fgb',
+  url: function(extent) {
+    return 'http://localhost:8080/geoserver/wfs?service=WFS&' +
+        'version=1.1.0&request=GetFeature&typename=topp:states&' +
+        'outputFormat=application/flatgeobuf&srsname=EPSG:4326&' +
+        'bbox=' + extent.join(',') + ',EPSG:4326';
+  },
+  strategy: bboxStrategy,
   format: new FlatGeobuf()
 });
 
