@@ -24,7 +24,13 @@ module.exports = {
     rules: [{
       test: /\.js$/,
       use: {
-        loader: 'buble-loader'
+        loader: 'buble-loader',
+        options: {
+          transforms: {
+            asyncAwait: false,
+            forOf: false
+          }
+        }
       },
       include: [
         path.join(__dirname, '..', '..', 'src'),
