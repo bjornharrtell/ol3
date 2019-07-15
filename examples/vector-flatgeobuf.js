@@ -13,7 +13,9 @@ import Polygon from '../src/ol/geom/Polygon.js';
 import MultiPolygon from '../src/ol/geom/MultiPolygon.js';
 import GeometryLayout from '../src/ol/geom/GeometryLayout.js';
 
-import {all as allStrategy} from '../src/ol/loadingstrategy.js';
+import {all as allStrategy, bbox as bboxStrategy} from '../src/ol/loadingstrategy.js';
+
+import MousePosition from '../src/ol/control/MousePosition'
 
 const style = new Style({
   fill: new Fill({
@@ -49,29 +51,35 @@ const ol = {
 };
 
 const vectorSource = new VectorSource({
-  strategy: allStrategy,
-  loader: async function() {
-    const response = await fetch('data/flatgeobuf/countries.fgb')
-    let asyncIterator = flatgeobuf.deserializeStream(response.body, ol);
+  //strategy: allStrategy,
+  strategy: bboxStrategy,
+  loader: async function(extent) {
+    const baseUrl = 'http://localhost:8080/geoserver/topp/ows'
+    const baseParams = 'service=WFS&version=1.0.0&request=GetFeature'
+    const typeNameParam = 'typeName=' + 'gis_osm_roads_free_1'
+    const bboxParam = 'bbox=' + extent.join(',')
+    const outputFormatParam = 'outputFormat=application/flatgeobuf'
+    const url = `${baseUrl}?${baseParams}&${typeNameParam}&${bboxParam}&${outputFormatParam}`
+    const response = await fetch(url)
+    //const response = await fetch('http://localhost:8080/geoserver/topp/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=topp%3Astates&outputFormat=application%2Fflatgeobuf')
+    let asyncIterator = flatgeobuf.deserializeStream(response.body, ol)
+    this.clear()
     for await (let feature of asyncIterator)
-      this.addFeature(feature);
+      this.addFeature(feature)
   }
 });
 
 const vectorLayer = new VectorLayer({
-  source: vectorSource,
-  style: function(feature) {
-    style.getText().setText(feature.get('name'));
-    return style;
-  }
+  source: vectorSource
 });
 
 const map = new Map({
   layers: [vectorLayer],
+  controls: [new MousePosition()],
   target: 'map',
   view: new View({
-    center: [0, 0],
-    zoom: 1,
+    center: [11, 55.5],
+    zoom: 12,
     projection: 'EPSG:4326'
   })
 });
@@ -94,51 +102,4 @@ const highlightStyle = new Style({
       width: 3
     })
   })
-});
-
-const featureOverlay = new VectorLayer({
-  source: new VectorSource(),
-  map: map,
-  style: function(feature) {
-    highlightStyle.getText().setText(feature.get('name'));
-    return highlightStyle;
-  }
-});
-
-let highlight;
-const displayFeatureInfo = function(pixel) {
-
-  const feature = map.forEachFeatureAtPixel(pixel, function(feature) {
-    return feature;
-  });
-
-  const info = document.getElementById('info');
-  if (feature) {
-    info.innerHTML = feature.getId() + ': ' + feature.get('name');
-  } else {
-    info.innerHTML = '&nbsp;';
-  }
-
-  if (feature !== highlight) {
-    if (highlight) {
-      featureOverlay.getSource().removeFeature(highlight);
-    }
-    if (feature) {
-      featureOverlay.getSource().addFeature(feature);
-    }
-    highlight = feature;
-  }
-
-};
-
-map.on('pointermove', function(evt) {
-  if (evt.dragging) {
-    return;
-  }
-  const pixel = map.getEventPixel(evt.originalEvent);
-  displayFeatureInfo(pixel);
-});
-
-map.on('click', function(evt) {
-  displayFeatureInfo(evt.pixel);
 });
